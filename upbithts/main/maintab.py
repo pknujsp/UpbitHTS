@@ -1,11 +1,12 @@
 import json
-import sys
 import pyupbit
 import requests
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import QCoreApplication, Qt
+from PyQt5 import QtCore
+from PyQt5.uic.properties import QtGui
 
-from upbithts.main import customcoinlistitem
+import upbithts.main.tablecolumn.commonutil as commonutil
+
+from PyQt5.QtWidgets import *
 
 
 class MainTab(QWidget):
@@ -24,12 +25,16 @@ class MainTab(QWidget):
         self.searchCoinBox.addWidget(self.searchCoinLineEdit, 3)
         self.searchCoinBox.addWidget(self.searchCoinBtn, 1)
 
-        self.coinListWidget = QListWidget(self)
+        self.coinTable = QTableWidget(self)
+        self.coinTable.setSortingEnabled(False)
+        self.coinTable.setColumnCount(4)
+        self.coinTable.setHorizontalHeaderLabels(['코인명', '현재가', '전일대비', '거래대금'])
+
         self.coinInfoView = QFrame()
         self.coinInfoView.setFrameShape(QFrame.Box)
 
         self.coinViewsBox = QHBoxLayout()
-        self.coinViewsBox.addWidget(self.coinListWidget, 3)
+        self.coinViewsBox.addWidget(self.coinTable, 3)
         self.coinViewsBox.addWidget(self.coinInfoView, 1)
 
         self.rootLayout = QVBoxLayout()
@@ -48,7 +53,7 @@ class MainTab(QWidget):
 
     def requestTicker(self):
         text = self.searchCoinLineEdit.text()
-        self.addListItem(text)
+        self.addRow(text)
         coinInfo = self.getCoinInfo(text)
         coinName = coinInfo['coin_name']
         marketCode = coinInfo['market_code']
@@ -61,16 +66,20 @@ class MainTab(QWidget):
         self.resultTicker(result, coinName)
 
     def resultTicker(self, result, coinName):
-        myQCustomQWidget = None
-        for row in range(0, self.coinListWidget.count()):
-            myQCustomQWidget = self.coinListWidget.itemWidget(self.coinListWidget.item(row))
-            if coinName == myQCustomQWidget.coinName:
+        rowIndex = ''
+        for row in range(0, self.coinTable.rowCount()):
+            item = self.coinTable.item(row, 0)
+            if coinName == item.text():
+                rowIndex = row
                 break
 
         resultDict = result[0]
-        myQCustomQWidget.setData(resultDict['trade_price'],
-                                 resultDict['change_rate'], resultDict['change_price'],
-                                 resultDict['acc_trade_price'])
+        self.coinTable.item(rowIndex, 1).setText(str(resultDict['trade_price']))
+        self.coinTable.item(rowIndex, 2).setText(
+            str(resultDict['change_rate']) + '\n' + str(resultDict['change_price']))
+        # commonutil.changeTextColor(self.coinTable.item(rowIndex, 1), resultDict['change_rate'])
+        # commonutil.changeTextColor(self.coinTable.item(rowIndex, 2), resultDict['change_rate'])
+        self.coinTable.item(rowIndex, 3).setText(str(resultDict['acc_trade_price']))
 
     def requestMarketCode(self):
         url = "https://api.upbit.com/v1/market/all"
@@ -90,23 +99,25 @@ class MainTab(QWidget):
                 self.coinNameDict[koreanName] = {'market_warning': marketWarning, 'market_code': marketCode}
                 self.marketCodeDict[marketCode] = {'market_warning': marketWarning, 'korean_name': koreanName}
 
-    def addListItem(self, text):
+    def addRow(self, text):
         coinInfo = self.getCoinInfo(text)
         coinName = coinInfo['coin_name']
         marketCode = coinInfo['market_code']
 
-        for row in range(0, self.coinListWidget.count()):
-            if coinName == self.coinListWidget.item(row).data(10):
+        row = self.coinTable.rowCount()
+        for r in range(0, row):
+            if coinName == self.coinTable.item(r, 0).text():
                 return
 
-        qWidget = customcoinlistitem.CustomCoinListItemWidget(coinName=coinName, marketCode=marketCode)
+        coinNameItem = QTableWidgetItem(coinName)
+        coinNameItem.setFlags(QtCore.Qt.ItemIsEnabled)
 
-        qListWidgetItem = QListWidgetItem(self.coinListWidget)
-        qListWidgetItem.setSizeHint(qWidget.sizeHint())
+        self.coinTable.setRowCount(row + 1)
 
-        qListWidgetItem.setData(10, coinName)
-        self.coinListWidget.addItem(qListWidgetItem)
-        self.coinListWidget.setItemWidget(qListWidgetItem, qWidget)
+        self.coinTable.setItem(row, 0, coinNameItem)
+        self.coinTable.setItem(row, 1, QTableWidgetItem(' '))
+        self.coinTable.setItem(row, 2, QTableWidgetItem(' '))
+        self.coinTable.setItem(row, 3, QTableWidgetItem(' '))
 
     def getMarketCode(self, text):
         marketCode = ''

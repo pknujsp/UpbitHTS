@@ -3,7 +3,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 
-class CustomCoinListItemWidget(QWidget):
+class CustomCoinListItemWidget(QTableWidgetItem):
     def __init__(self, coinName, marketCode, parent=None):
         super(CustomCoinListItemWidget, self).__init__(parent)
 
@@ -45,14 +45,6 @@ class CustomCoinListItemWidget(QWidget):
         self.coinTradePriceLabel.setText(str(tradePrice))
 
         self.changeTextColor(changeRate)
-
-    def changeTextColor(self, changeRate):
-        changeRateFloat = float(changeRate)
-        color = '''color: rgb(255, 0, 0);''' if changeRateFloat < 0.0 else '''color: rgb(0, 0, 255);'''
-
-        self.coinCurrentPriceLabel.setStyleSheet(color)
-        self.coinChangeRateLabel.setStyleSheet(color)
-        self.coinChangePriceLabel.setStyleSheet(color)
 
     @property
     def coinName(self):
